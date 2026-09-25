@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CogniSupport — Intelligent Customer Service Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar / Telemetry -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-badge">AI</div>
+                <div class="brand-text">
+                    <h2>CogniSupport</h2>
+                    <span>NLP Intent Classifier</span>
+                </div>
+            </div>
+
+            <div class="telemetry-card">
+                <h3>Live Agent Telemetry</h3>
+                <div class="metric-row">
+                    <span class="metric-label">Status</span>
+                    <span class="metric-val status-online">● Online (Flask API)</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">NLP Model</span>
+                    <span class="metric-val">LogisticRegression + TF-IDF</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Threshold</span>
+                    <span class="metric-val">35% Fallback Guard</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Avg Response</span>
+                    <span class="metric-val" id="avg-latency">< 15 ms</span>
+                </div>
+            </div>
+
+            <div class="intents-guide">
+                <h4>Supported Intent Domains</h4>
+                <div class="intent-pill">💳 Billing & Invoices</div>
+                <div class="intent-pill">🔄 Refund Requests</div>
+                <div class="intent-pill">❌ Cancellation Inquiries</div>
+                <div class="intent-pill">📦 Product & Capabilities</div>
+                <div class="intent-pill">⚙️ Technical Glitches</div>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>Engineered by <strong>Purushotham Balamurali</strong></p>
+                <div class="links">
+                    <a href="https://github.com/pbalamurali74-hue" target="_blank">GitHub</a> • 
+                    <a href="https://www.linkedin.com/in/purushothambalamurali/" target="_blank">LinkedIn</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <header class="chat-header">
+                <div>
+                    <h1>Customer Service Command Center</h1>
+                    <p class="subtitle">Natural Language Intent Classification & Automated Ticket Triage</p>
+                </div>
+                <button class="clear-btn" onclick="clearChat()">Clear Chat</button>
+            </header>
+
+            <!-- Quick Suggestion Chips -->
+            <div class="quick-chips">
+                <span class="chip-label">Quick Prompts:</span>
+                <button class="chip" onclick="sendQuick('I need to dispute an incorrect billing charge on my card')">💳 Billing Issue</button>
+                <button class="chip" onclick="sendQuick('Can I get a full refund for my recent transaction?')">🔄 Refund Request</button>
+                <button class="chip" onclick="sendQuick('I would like to cancel my subscription account')">❌ Cancel Service</button>
+                <button class="chip" onclick="sendQuick('My API connection is failing with 500 internal errors')">⚙️ Technical Bug</button>
+                <button class="chip" onclick="sendQuick('Tell me more about your enterprise security features')">📦 Product Info</button>
+            </div>
+
+            <!-- Chat Window -->
+            <div id="chat-box" class="chat-box">
+                <div class="message bot-message">
+                    <div class="avatar bot-avatar">🤖</div>
+                    <div class="msg-content">
+                        <div class="msg-header">
+                            <span class="sender-name">CogniSupport Bot</span>
+                            <span class="intent-tag tag-system">System Initialized</span>
+                        </div>
+                        <p>Welcome! I am your AI Customer Support Assistant. Ask any question about your billing, technical troubleshooting, product capabilities, or cancellations.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Bar -->
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <input type="text" id="user-input" placeholder="Type your customer support question here..." autocomplete="off">
+                    <button id="send-btn" onclick="sendMessage()">
+                        <span>Send</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+
+        userInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function sendQuick(text) {
+            userInput.value = text;
+            sendMessage();
+        }
+
+        function clearChat() {
+            chatBox.innerHTML = `
+                <div class="message bot-message">
+                    <div class="avatar bot-avatar">🤖</div>
+                    <div class="msg-content">
+                        <div class="msg-header">
+                            <span class="sender-name">CogniSupport Bot</span>
+                            <span class="intent-tag tag-system">Ready</span>
+                        </div>
+                        <p>Chat cleared. How can I assist you today?</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Append user message
+            const userMsgHtml = `
+                <div class="message user-message">
+                    <div class="avatar user-avatar">👤</div>
+                    <div class="msg-content">
+                        <div class="msg-header">
+                            <span class="sender-name">You</span>
+                        </div>
+                        <p>${escapeHtml(message)}</p>
+                    </div>
+                </div>
+            `;
+            chatBox.innerHTML += userMsgHtml;
+            userInput.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Typing indicator
+            const typingId = 'typing-' + Date.now();
+            const typingHtml = `
+                <div class="message bot-message" id="${typingId}">
+                    <div class="avatar bot-avatar">🤖</div>
+                    <div class="msg-content">
+                        <div class="typing-indicator">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatBox.innerHTML += typingHtml;
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                document.getElementById(typingId)?.remove();
+
+                if (response.ok) {
+                    const tagClass = data.intent === 'Fallback' ? 'tag-fallback' : 'tag-intent';
+                    const sentimentClass = data.sentiment.includes('Urgent') ? 'tag-urgent' : 'tag-sentiment';
+                    
+                    let actionsHtml = '';
+                    if (data.suggested_actions && data.suggested_actions.length > 0) {
+                        actionsHtml = `
+                            <div class="action-buttons">
+                                ${data.suggested_actions.map(act => `<button class="action-btn" onclick="sendQuick('${act}')">${act}</button>`).join('')}
+                            </div>
+                        `;
+                    }
+
+                    const botMsgHtml = `
+                        <div class="message bot-message">
+                            <div class="avatar bot-avatar">🤖</div>
+                            <div class="msg-content">
+                                <div class="msg-header">
+                                    <span class="sender-name">CogniSupport Bot</span>
+                                    <span class="intent-tag ${tagClass}">🎯 ${data.intent} (${data.confidence}%)</span>
+                                    <span class="intent-tag ${sentimentClass}">Mood: ${data.sentiment}</span>
+                                    <span class="latency-tag">${data.latency_ms}ms</span>
+                                </div>
+                                <p>${escapeHtml(data.response)}</p>
+                                ${actionsHtml}
+                            </div>
+                        </div>
+                    `;
+                    chatBox.innerHTML += botMsgHtml;
+                    if (data.latency_ms) {
+                        document.getElementById('avg-latency').innerText = `${data.latency_ms} ms`;
+                    }
+                } else {
+                    chatBox.innerHTML += `
+                        <div class="message bot-message error-message">
+                            <div class="avatar bot-avatar">⚠️</div>
+                            <div class="msg-content">
+                                <p>Error: ${data.error || 'Unable to process query.'}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                document.getElementById(typingId)?.remove();
+                chatBox.innerHTML += `
+                    <div class="message bot-message error-message">
+                        <div class="avatar bot-avatar">⚠️</div>
+                        <div class="msg-content">
+                            <p>Network Error: Could not connect to chatbot backend service.</p>
+                        </div>
+                    </div>
+                `;
+            }
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
